@@ -20,8 +20,8 @@ mutation {
     commentsEnabled
   }
 }
-По умолчанию: commentsEnabled = true
 ```
+По умолчанию: commentsEnabled = true
 <br>
 
 **Добавления комментария:**
