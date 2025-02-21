@@ -1,14 +1,28 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
+  postgres:
+    image: postgres:latest
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123
     ports:
       - "5432:5432"
+    networks:
+      - surely-network
+  server:
+    build:
+      dockerfile: Dockerfile
+      context: ./
+    ports:
+      - 8080:8080
+    command: go run .
+    develop:
+      watch:
+      - action: sync+restart
+        path: ./
+        target: /app
     networks:
       - surely-network
 

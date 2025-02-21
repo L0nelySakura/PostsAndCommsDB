@@ -18,9 +18,8 @@ const defaultPort = "8080"
 
 
 func main() {
-	// docker run -d --name postgresql -e POSTGRES_DB=restservice -e POSTGRES_PASSWORD=s3cr3t -p 5432:5432 postgres:11
-	// docker run -d --name test -e POSTGRES_PASSWORD=123 -d postgres
-	connection := "postgres://postgres:123@localhost:5432/postgres"
+
+	connection := "postgres://postgres:123@postgres:5432/postgres?sslmode=disable"
 	resolver := graph.NewResolver(connection)
 
 	port := os.Getenv("PORT")
