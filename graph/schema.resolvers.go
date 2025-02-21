@@ -107,17 +107,44 @@ func (r *queryResolver) Post(ctx context.Context, id string) (*model.Post, error
 // Comments is the resolver for the comments field.
 func (r *queryResolver) Comments(ctx context.Context, id string, limit *int32, offset *int32) ([]*model.Comment, error) {
 
-	rows, err := r.DB.Query(ctx, `
+	l := 10
+	if !reflect.ValueOf(limit).IsNil() {
+		l = int(*limit)
+	}
+	o := 0
+	if !reflect.ValueOf(offset).IsNil() {
+		o = int(*offset)
+	}
+
+	query :=
+		`
+	WITH RECURSIVE comment_tree AS (
 		SELECT 
-			id, 
-			content, 
-			author, 
-			post_id, 
-			parent_id
-		FROM comments 
+			c.id, 
+			c.content, 
+			c.author, 
+			c.post_id,
+			c.parent_id,
+			concat_ws('/', C.id) as path_url
+		FROM comments C
 		WHERE post_id = $1 AND parent_id = $2
-		LIMIT $3 OFFSET $4
-	`, id, "00000000-0000-0000-0000-000000000000", limit, offset)
+		
+		UNION ALL
+		
+		SELECT
+			P.id, 
+			P.content, 
+			P.author, 
+			P.post_id,
+			P.parent_id,
+			concat_ws('/',comment_tree.path_url,  P.id) as path_url
+		FROM comments P
+		JOIN comment_tree ON P.parent_id = comment_tree.id	
+	)
+	SELECT id, content, author, post_id, parent_id FROM comment_tree 
+		ORDER BY path_url 
+	`
+	rows, err := r.DB.Query(ctx, query, id, "00000000-0000-0000-0000-000000000000")
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +155,20 @@ func (r *queryResolver) Comments(ctx context.Context, id string, limit *int32, o
 		if err != nil {
 			return nil, err
 		}
-		comments = append(comments, &c)
-		comments = append(comments, r.commentTree(ctx, c.ID)...)
+		if c.Parentid == "00000000-0000-0000-0000-000000000000" {
+			if o <= 0 {
+				if l > 0 {
+					l = l - 1
+				} else {
+					break
+				}
+			}
+			o = o - 1
+		}
+		if o < 0 && l >= 0 {
+			comments = append(comments, &c)
+		}
+
 	}
 	return comments, nil
 }
