@@ -22,6 +22,7 @@ mutation {
 }
 ```
 По умолчанию: commentsEnabled = true
+
 <br>
 
 **Добавления комментария:**
